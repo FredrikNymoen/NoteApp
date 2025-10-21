@@ -1,53 +1,86 @@
+// Updated NoteController.kt
 package org.example.noteappapi.controller
 
+import com.google.cloud.firestore.Firestore
 import org.example.noteappapi.model.CreateNoteRequest
 import org.example.noteappapi.model.Note
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
+import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.web.bind.annotation.*
+import java.util.UUID
 
 @RestController
-class NoteController {
-    private val notes = mutableListOf<Note>()
-    private var nextId = 1L
+class NoteController(private val firestore: Firestore) {
 
-    init {
-        // Initial data
-        notes.add(Note(nextId++, "Velkommen", "Dette er din første notat!"))
-        notes.add(Note(nextId++, "Shopping", "Melk, brød, ost"))
-        notes.add(Note(nextId++, "Trening", "Løpe 5 km i morgen"))
-    }
+    private val COLLECTION_NAME = "notes"
 
     fun getAllNotes(): ResponseEntity<List<Note>> {
-        println("GET /api/notes - Returnerer ${notes.size} notater")
+        val userId = SecurityContextHolder.getContext().authentication.principal as String
+
+        val notes = firestore.collection(COLLECTION_NAME)
+            .whereEqualTo("userId", userId)
+            .get()
+            .get()
+            .documents
+            .map { doc ->
+                doc.toObject(Note::class.java).copy(id = doc.id)
+            }
+
         return ResponseEntity.ok(notes)
     }
 
-    fun getNoteById(id: Long): ResponseEntity<Note> {
-        println("GET /api/notes/$id")
-        val note = notes.find { it.id == id }
-        return if (note != null) {
-            ResponseEntity.ok(note)
+    fun getNoteById(id: String): ResponseEntity<Note> {
+        val userId = SecurityContextHolder.getContext().authentication.principal as String
+
+        val doc = firestore.collection(COLLECTION_NAME).document(id).get().get()
+
+        return if (doc.exists()) {
+            val note = doc.toObject(Note::class.java)?.copy(id = doc.id)
+            if (note?.userId == userId) {
+                ResponseEntity.ok(note)
+            } else {
+                ResponseEntity.status(HttpStatus.FORBIDDEN).build()
+            }
         } else {
             ResponseEntity.notFound().build()
         }
     }
 
     fun createNote(request: CreateNoteRequest): ResponseEntity<Note> {
-        println("POST /api/notes - Opprettet: ${request.title}")
+        val userId = SecurityContextHolder.getContext().authentication.principal as String
+
         if (request.title.isBlank() || request.content.isBlank()) {
             return ResponseEntity.badRequest().build()
         }
-        val note = Note(nextId++, request.title, request.content)
-        notes.add(note)
+
+        val noteId = UUID.randomUUID().toString()
+        val note = Note(
+            id = noteId,
+            userId = userId,
+            title = request.title,
+            content = request.content
+        )
+
+        firestore.collection(COLLECTION_NAME).document(noteId).set(note).get()
+
         return ResponseEntity.status(HttpStatus.CREATED).body(note)
     }
 
-    fun deleteNote(id: Long): ResponseEntity<Map<String, Boolean>> {
-        println("DELETE /api/notes/$id")
-        val removed = notes.removeIf { it.id == id }
-        return if (removed) {
-            ResponseEntity.ok(mapOf("success" to true))
+    fun deleteNote(id: String): ResponseEntity<Map<String, Boolean>> {
+        val userId = SecurityContextHolder.getContext().authentication.principal as String
+
+        val doc = firestore.collection(COLLECTION_NAME).document(id).get().get()
+
+        return if (doc.exists()) {
+            val note = doc.toObject(Note::class.java)
+            if (note?.userId == userId) {
+                firestore.collection(COLLECTION_NAME).document(id).delete().get()
+                ResponseEntity.ok(mapOf("success" to true))
+            } else {
+                ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(mapOf("success" to false))
+            }
         } else {
             ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(mapOf("success" to false))
