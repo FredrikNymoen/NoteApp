@@ -1,33 +1,89 @@
+// NavigationGraph.kt (Oppdatert med auth flow)
 package com.example.noteapp.ui.navigation
 
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.example.noteapp.ui.screens.addnote.AddNoteScreen
+import com.example.noteapp.ui.screens.auth.LoginScreen
+import com.example.noteapp.ui.screens.auth.SignUpScreen
 import com.example.noteapp.ui.screens.notes.NotesListScreen
 import com.example.noteapp.ui.screens.profile.ProfileScreen
+import com.example.noteapp.viewmodel.AuthViewModel
 import com.example.noteapp.viewmodel.NoteViewModel
 
 @Composable
 fun NavigationGraph(
     navController: NavHostController,
-    viewModel: NoteViewModel,
-    modifier: Modifier = Modifier
+    noteViewModel: NoteViewModel,
+    authViewModel: AuthViewModel,
+    modifier: Modifier = Modifier,
+    startDestination: String
 ) {
     NavHost(
         navController = navController,
-        startDestination = Screen.Notes.route,
+        startDestination = startDestination,
         modifier = modifier
     ) {
+        // Auth screens
+        composable(Screen.Login.route) {
+            LoginScreen(
+                onLoginClick = { email, password ->
+                    authViewModel.signIn(email, password) {
+                        navController.navigate(Screen.Notes.route) {
+                            popUpTo(Screen.Login.route) { inclusive = true }
+                        }
+                    }
+                },
+                onSignUpNavigate = {
+                    navController.navigate(Screen.SignUp.route)
+                },
+                isLoading = authViewModel.isLoading,
+                errorMessage = authViewModel.errorMessage
+            )
+
+            // Clear error when leaving screen
+            DisposableEffect(Unit) {
+                onDispose {
+                    authViewModel.clearError()
+                }
+            }
+        }
+
+        composable(Screen.SignUp.route) {
+            SignUpScreen(
+                onSignUpClick = { name, email, password ->
+                    authViewModel.signUp(name, email, password) {
+                        navController.navigate(Screen.Notes.route) {
+                            popUpTo(Screen.SignUp.route) { inclusive = true }
+                        }
+                    }
+                },
+                onLoginNavigate = {
+                    navController.navigateUp()
+                },
+                isLoading = authViewModel.isLoading,
+                errorMessage = authViewModel.errorMessage
+            )
+
+            // Clear error when leaving screen
+            DisposableEffect(Unit) {
+                onDispose {
+                    authViewModel.clearError()
+                }
+            }
+        }
+
+        // Main app screens
         composable(Screen.Notes.route) {
-            NotesListScreen(viewModel)
+            NotesListScreen(noteViewModel)
         }
 
         composable(Screen.AddNote.route) {
             AddNoteScreen(
-                viewModel = viewModel,
+                viewModel = noteViewModel,
                 onNoteSaved = {
                     navController.navigate(Screen.Notes.route) {
                         popUpTo(Screen.Notes.route) { inclusive = false }
@@ -37,7 +93,15 @@ fun NavigationGraph(
         }
 
         composable(Screen.Profile.route) {
-            ProfileScreen()
+            ProfileScreen(
+                authViewModel = authViewModel,
+                onSignOut = {
+                    authViewModel.signOut()
+                    navController.navigate(Screen.Login.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
+            )
         }
     }
 }
