@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/fredr/Documents/PROG2007-MobileProgramming/NoteApp/**)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

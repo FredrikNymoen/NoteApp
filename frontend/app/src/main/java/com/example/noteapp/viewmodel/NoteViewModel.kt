@@ -9,8 +9,10 @@ import com.example.noteapp.data.model.Note
 import com.example.noteapp.data.repository.NoteRepository
 import kotlinx.coroutines.launch
 
-class NoteViewModel : ViewModel() {
-    private val repository = NoteRepository()
+class NoteViewModel(
+    private val authViewModel: AuthViewModel
+) : ViewModel() {
+    private val repository = NoteRepository(authViewModel)
 
     var notes by mutableStateOf<List<Note>>(emptyList())
         private set
@@ -21,8 +23,13 @@ class NoteViewModel : ViewModel() {
     var errorMessage by mutableStateOf<String?>(null)
         private set
 
-    init {
-        loadNotes()
+    private var notesLoaded = false
+
+    fun ensureNotesLoaded() {
+        if (!notesLoaded) {
+            loadNotes()
+            notesLoaded = true
+        }
     }
 
     fun loadNotes() {
@@ -30,7 +37,13 @@ class NoteViewModel : ViewModel() {
             isLoading = true
             errorMessage = null
             try {
-                notes = repository.getNotes()
+                repository.getAllNotes().collect { result ->
+                    result.onSuccess { notesList ->
+                        notes = notesList
+                    }.onFailure { exception ->
+                        errorMessage = "Feil ved lasting: ${exception.localizedMessage}"
+                    }
+                }
             } catch (e: Exception) {
                 errorMessage = "Feil ved lasting: ${e.message}"
             } finally {
@@ -42,19 +55,27 @@ class NoteViewModel : ViewModel() {
     fun addNote(title: String, content: String) {
         viewModelScope.launch {
             try {
-                repository.createNote(title, content)
-                loadNotes()
+                val result = repository.createNote(title, content)
+                result.onSuccess {
+                    loadNotes()
+                }.onFailure { exception ->
+                    errorMessage = "Feil ved lagring: ${exception.localizedMessage}"
+                }
             } catch (e: Exception) {
                 errorMessage = "Feil ved lagring: ${e.message}"
             }
         }
     }
 
-    fun deleteNote(id: Long) {
+    fun deleteNote(noteId: String) {
         viewModelScope.launch {
             try {
-                repository.deleteNote(id)
-                loadNotes()
+                val result = repository.deleteNote(noteId)
+                result.onSuccess {
+                    loadNotes()
+                }.onFailure { exception ->
+                    errorMessage = "Feil ved sletting: ${exception.localizedMessage}"
+                }
             } catch (e: Exception) {
                 errorMessage = "Feil ved sletting: ${e.message}"
             }

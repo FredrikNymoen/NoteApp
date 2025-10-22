@@ -1,56 +1,122 @@
+// Updated NoteController.kt
 package org.example.noteappapi.controller
 
+import com.google.cloud.firestore.Firestore
 import org.example.noteappapi.model.CreateNoteRequest
 import org.example.noteappapi.model.Note
+import org.example.noteappapi.model.NoteWithAuthor
+import org.example.noteappapi.model.User
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
+import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.web.bind.annotation.*
+import java.util.UUID
 
 @RestController
-class NoteController {
-    private val notes = mutableListOf<Note>()
-    private var nextId = 1L
+@RequestMapping("/api/notes")
+class NoteController(private val firestore: Firestore) {
 
-    init {
-        // Initial data
-        notes.add(Note(nextId++, "Velkommen", "Dette er din første notat!"))
-        notes.add(Note(nextId++, "Shopping", "Melk, brød, ost"))
-        notes.add(Note(nextId++, "Trening", "Løpe 5 km i morgen"))
-    }
+    private val COLLECTION_NAME = "notes"
+    private val USERS_COLLECTION = "users"
 
-    fun getAllNotes(): ResponseEntity<List<Note>> {
-        println("GET /api/notes - Returnerer ${notes.size} notater")
+    @GetMapping
+    fun getAllNotes(): ResponseEntity<List<NoteWithAuthor>> {
+        val notes = firestore.collection(COLLECTION_NAME)
+            .get()
+            .get()
+            .documents
+            .mapNotNull { doc ->
+                val note = doc.toObject(Note::class.java)?.copy(id = doc.id)
+                note?.let { addAuthorName(it) }
+            }
+
         return ResponseEntity.ok(notes)
     }
 
-    fun getNoteById(id: Long): ResponseEntity<Note> {
-        println("GET /api/notes/$id")
-        val note = notes.find { it.id == id }
-        return if (note != null) {
-            ResponseEntity.ok(note)
+    @GetMapping("/{id}")
+    fun getNoteById(@PathVariable id: String): ResponseEntity<NoteWithAuthor> {
+        val doc = firestore.collection(COLLECTION_NAME).document(id).get().get()
+
+        return if (doc.exists()) {
+            val note = doc.toObject(Note::class.java)?.copy(id = doc.id)
+            val noteWithAuthor = note?.let { addAuthorName(it) }
+            if (noteWithAuthor != null) {
+                ResponseEntity.ok(noteWithAuthor)
+            } else {
+                ResponseEntity.notFound().build()
+            }
         } else {
             ResponseEntity.notFound().build()
         }
     }
 
-    fun createNote(request: CreateNoteRequest): ResponseEntity<Note> {
-        println("POST /api/notes - Opprettet: ${request.title}")
+    @PostMapping
+    fun createNote(@RequestBody request: CreateNoteRequest): ResponseEntity<NoteWithAuthor> {
+        val userId = SecurityContextHolder.getContext().authentication.principal as String
+
         if (request.title.isBlank() || request.content.isBlank()) {
             return ResponseEntity.badRequest().build()
         }
-        val note = Note(nextId++, request.title, request.content)
-        notes.add(note)
-        return ResponseEntity.status(HttpStatus.CREATED).body(note)
+
+        val noteId = UUID.randomUUID().toString()
+        val note = Note(
+            id = noteId,
+            userId = userId,
+            title = request.title,
+            content = request.content
+        )
+
+        firestore.collection(COLLECTION_NAME).document(noteId).set(note).get()
+
+        val noteWithAuthor = addAuthorName(note)
+        return ResponseEntity.status(HttpStatus.CREATED).body(noteWithAuthor)
     }
 
-    fun deleteNote(id: Long): ResponseEntity<Map<String, Boolean>> {
-        println("DELETE /api/notes/$id")
-        val removed = notes.removeIf { it.id == id }
-        return if (removed) {
-            ResponseEntity.ok(mapOf("success" to true))
+    @DeleteMapping("/{id}")
+    fun deleteNote(@PathVariable id: String): ResponseEntity<Map<String, Boolean>> {
+        val userId = SecurityContextHolder.getContext().authentication.principal as String
+
+        val doc = firestore.collection(COLLECTION_NAME).document(id).get().get()
+
+        return if (doc.exists()) {
+            val note = doc.toObject(Note::class.java)
+            if (note?.userId == userId) {
+                firestore.collection(COLLECTION_NAME).document(id).delete().get()
+                ResponseEntity.ok(mapOf("success" to true))
+            } else {
+                ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(mapOf("success" to false))
+            }
         } else {
             ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(mapOf("success" to false))
         }
+    }
+
+    private fun addAuthorName(note: Note): NoteWithAuthor {
+        val userName = try {
+            val userDoc = firestore.collection(USERS_COLLECTION)
+                .document(note.userId)
+                .get()
+                .get()
+
+            if (userDoc.exists()) {
+                userDoc.getString("name") ?: "Ukjent bruker"
+            } else {
+                "Ukjent bruker"
+            }
+        } catch (e: Exception) {
+            "Ukjent bruker"
+        }
+
+        return NoteWithAuthor(
+            id = note.id,
+            userId = note.userId,
+            title = note.title,
+            content = note.content,
+            userName = userName,
+            createdAt = note.createdAt,
+            updatedAt = note.updatedAt
+        )
     }
 }

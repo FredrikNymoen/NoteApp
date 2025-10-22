@@ -5,6 +5,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
@@ -14,6 +15,9 @@ import com.example.noteapp.viewmodel.NoteViewModel
 
 @Composable
 fun NotesListScreen(viewModel: NoteViewModel) {
+    LaunchedEffect(Unit) {
+        viewModel.ensureNotesLoaded()
+    }
     Column(
         modifier = Modifier
             .fillMaxSize()

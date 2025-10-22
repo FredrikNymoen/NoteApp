@@ -38,3 +38,11 @@ out/
 
 ### Kotlin ###
 .kotlin
+
+### Firebase & Environment Variables ###
+.env
+.env.local
+.env.*.local
+firebase-key.json
+google-services.json
+
