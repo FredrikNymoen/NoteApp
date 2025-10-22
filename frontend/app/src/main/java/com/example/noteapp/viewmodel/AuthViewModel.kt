@@ -1,8 +1,5 @@
 package com.example.noteapp.viewmodel
 
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
@@ -11,55 +8,63 @@ import com.google.firebase.auth.ktx.auth
 import com.google.firebase.auth.userProfileChangeRequest
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+
+data class AuthUiState(
+    val currentUser: FirebaseUser? = null,
+    val isLoggedIn: Boolean = false,
+    val isLoading: Boolean = false,
+    val errorMessage: String? = null
+)
 
 class AuthViewModel : ViewModel() {
     private val auth: FirebaseAuth = Firebase.auth
     private val firestore = Firebase.firestore
 
-    var currentUser by mutableStateOf<FirebaseUser?>(null)
-        private set
-
-    var isLoggedIn by mutableStateOf(false)
-        private set
-
-    var isLoading by mutableStateOf(false)
-        private set
-
-    var errorMessage by mutableStateOf<String?>(null)
-        private set
+    private val _uiState = MutableStateFlow(AuthUiState())
+    val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
 
     init {
         checkCurrentUser()
     }
 
     private fun checkCurrentUser() {
-        currentUser = auth.currentUser
-        isLoggedIn = currentUser != null
+        val user = auth.currentUser
+        _uiState.update { it.copy(currentUser = user, isLoggedIn = user != null) }
     }
 
     fun signIn(email: String, password: String, onSuccess: () -> Unit) {
         viewModelScope.launch {
-            isLoading = true
-            errorMessage = null
+            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             try {
                 val result = auth.signInWithEmailAndPassword(email, password).await()
-                currentUser = result.user
-                isLoggedIn = true
+                _uiState.update {
+                    it.copy(
+                        currentUser = result.user,
+                        isLoggedIn = true,
+                        isLoading = false
+                    )
+                }
                 onSuccess()
             } catch (e: Exception) {
-                errorMessage = "Feil ved innlogging: ${e.localizedMessage}"
-            } finally {
-                isLoading = false
+                _uiState.update {
+                    it.copy(
+                        errorMessage = "Feil ved innlogging: ${e.localizedMessage}",
+                        isLoading = false
+                    )
+                }
             }
         }
     }
 
     fun signUp(name: String, email: String, password: String, onSuccess: () -> Unit) {
         viewModelScope.launch {
-            isLoading = true
-            errorMessage = null
+            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             try {
                 val result = auth.createUserWithEmailAndPassword(email, password).await()
 
@@ -79,21 +84,28 @@ class AuthViewModel : ViewModel() {
                     firestore.collection("users").document(user.uid).set(userDoc).await()
                 }
 
-                currentUser = result.user
-                isLoggedIn = true
+                _uiState.update {
+                    it.copy(
+                        currentUser = result.user,
+                        isLoggedIn = true,
+                        isLoading = false
+                    )
+                }
                 onSuccess()
             } catch (e: Exception) {
-                errorMessage = "Feil ved registrering: ${e.localizedMessage}"
-            } finally {
-                isLoading = false
+                _uiState.update {
+                    it.copy(
+                        errorMessage = "Feil ved registrering: ${e.localizedMessage}",
+                        isLoading = false
+                    )
+                }
             }
         }
     }
 
     fun signOut() {
         auth.signOut()
-        currentUser = null
-        isLoggedIn = false
+        _uiState.update { it.copy(currentUser = null, isLoggedIn = false) }
     }
 
     fun getCurrentUserId(): String? = auth.currentUser?.uid
@@ -107,6 +119,6 @@ class AuthViewModel : ViewModel() {
     }
 
     fun clearError() {
-        errorMessage = null
+        _uiState.update { it.copy(errorMessage = null) }
     }
 }

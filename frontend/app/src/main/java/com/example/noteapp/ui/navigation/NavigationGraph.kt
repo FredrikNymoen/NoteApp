@@ -22,6 +22,8 @@ fun NavigationGraph(
     modifier: Modifier = Modifier,
     startDestination: String
 ) {
+    val authUiState by authViewModel.uiState.collectAsState()
+
     NavHost(
         navController = navController,
         startDestination = startDestination,
@@ -40,8 +42,8 @@ fun NavigationGraph(
                 onSignUpNavigate = {
                     navController.navigate(Screen.SignUp.route)
                 },
-                isLoading = authViewModel.isLoading,
-                errorMessage = authViewModel.errorMessage
+                isLoading = authUiState.isLoading,
+                errorMessage = authUiState.errorMessage
             )
 
             // Clear error when leaving screen
@@ -64,8 +66,8 @@ fun NavigationGraph(
                 onLoginNavigate = {
                     navController.navigateUp()
                 },
-                isLoading = authViewModel.isLoading,
-                errorMessage = authViewModel.errorMessage
+                isLoading = authUiState.isLoading,
+                errorMessage = authUiState.errorMessage
             )
 
             // Clear error when leaving screen

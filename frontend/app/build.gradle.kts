@@ -2,6 +2,7 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose") version "2.0.0" // Compose Compiler Plugin
+    id("com.google.gms.google-services") // Google Services plugin for Firebase
 }
 
 android {
