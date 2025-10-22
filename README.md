@@ -31,24 +31,6 @@ authViewModel.signIn(email, password)
 // → Token included in API requests: Authorization: Bearer {token}
 ```
 
-### 📚 Firestore Database
-- **User Documents** - Store user profiles and metadata
-- **Note Collections** - Per-user note storage in Firestore
-- **Real-time Sync** - Data persists across devices
-- **Security Rules** - Users can only access their own data
-
-```
-Firestore Structure:
-├── users/
-│   └── {userId}/
-│       ├── name: string
-│       ├── email: string
-│       └── notes/ (subcollection)
-│           └── {noteId}
-│               ├── title: string
-│               ├── content: string
-│               └── createdAt: timestamp
-```
 
 ## 📱 Frontend (Android)
 
