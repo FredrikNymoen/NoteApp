@@ -1,10 +1,8 @@
-// NoteRepository.kt (oppdatert)
 package com.example.noteapp.data.repository
 
-import com.example.noteapp.data.remote.ApiService
-import com.example.noteapp.data.remote.CreateNoteRequest
-import com.example.noteapp.data.remote.NetworkModule
+import com.example.noteapp.data.model.CreateNoteRequest
 import com.example.noteapp.data.model.Note
+import com.example.noteapp.data.remote.RetrofitClient
 import com.example.noteapp.viewmodel.AuthViewModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -12,7 +10,7 @@ import kotlinx.coroutines.flow.flow
 class NoteRepository(
     private val authViewModel: AuthViewModel
 ) {
-    private val apiService = NetworkModule.apiService
+    private val apiService = RetrofitClient.apiService
 
     private suspend fun getAuthToken(): String {
         val token = authViewModel.getIdToken() ?: throw Exception("Not authenticated")
@@ -43,8 +41,8 @@ class NoteRepository(
     suspend fun deleteNote(noteId: String): Result<Boolean> {
         return try {
             val token = getAuthToken()
-            val response = apiService.deleteNote(token, noteId)
-            Result.success(response["success"] == true)
+            apiService.deleteNote(token, noteId)
+            Result.success(true)
         } catch (e: Exception) {
             Result.failure(e)
         }

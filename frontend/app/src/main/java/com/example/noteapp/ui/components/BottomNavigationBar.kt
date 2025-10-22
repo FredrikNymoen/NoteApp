@@ -17,7 +17,7 @@ fun BottomNavigationBar(
     NavigationBar {
         screens.forEach { screen ->
             NavigationBarItem(
-                icon = { Icon(screen.icon, contentDescription = screen.title) },
+                icon = { screen.icon?.let { Icon(it, contentDescription = screen.title) } },
                 label = { Text(screen.title) },
                 selected = currentRoute == screen.route,
                 onClick = {

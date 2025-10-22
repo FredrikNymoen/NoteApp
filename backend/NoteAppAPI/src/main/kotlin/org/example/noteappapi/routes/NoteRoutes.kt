@@ -16,7 +16,7 @@ class NoteRoutes(private val controller: NoteController) {
     }
 
     @GetMapping("/{id}")
-    fun getNoteById(@PathVariable id: Long): ResponseEntity<Note> {
+    fun getNoteById(@PathVariable id: String): ResponseEntity<Note> {
         return controller.getNoteById(id)
     }
 
@@ -26,7 +26,7 @@ class NoteRoutes(private val controller: NoteController) {
     }
 
     @DeleteMapping("/{id}")
-    fun deleteNote(@PathVariable id: Long): ResponseEntity<Map<String, Boolean>> {
+    fun deleteNote(@PathVariable id: String): ResponseEntity<Map<String, Boolean>> {
         return controller.deleteNote(id)
     }
 }

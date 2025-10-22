@@ -98,6 +98,14 @@ class AuthViewModel : ViewModel() {
 
     fun getCurrentUserId(): String? = auth.currentUser?.uid
 
+    suspend fun getIdToken(): String? {
+        return try {
+            auth.currentUser?.getIdToken(false)?.await()?.token
+        } catch (e: Exception) {
+            null
+        }
+    }
+
     fun clearError() {
         errorMessage = null
     }

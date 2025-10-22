@@ -11,10 +11,12 @@ import org.springframework.web.bind.annotation.*
 import java.util.UUID
 
 @RestController
+@RequestMapping("/api/notes")
 class NoteController(private val firestore: Firestore) {
 
     private val COLLECTION_NAME = "notes"
 
+    @GetMapping
     fun getAllNotes(): ResponseEntity<List<Note>> {
         val userId = SecurityContextHolder.getContext().authentication.principal as String
 
@@ -30,7 +32,8 @@ class NoteController(private val firestore: Firestore) {
         return ResponseEntity.ok(notes)
     }
 
-    fun getNoteById(id: String): ResponseEntity<Note> {
+    @GetMapping("/{id}")
+    fun getNoteById(@PathVariable id: String): ResponseEntity<Note> {
         val userId = SecurityContextHolder.getContext().authentication.principal as String
 
         val doc = firestore.collection(COLLECTION_NAME).document(id).get().get()
@@ -47,7 +50,8 @@ class NoteController(private val firestore: Firestore) {
         }
     }
 
-    fun createNote(request: CreateNoteRequest): ResponseEntity<Note> {
+    @PostMapping
+    fun createNote(@RequestBody request: CreateNoteRequest): ResponseEntity<Note> {
         val userId = SecurityContextHolder.getContext().authentication.principal as String
 
         if (request.title.isBlank() || request.content.isBlank()) {
@@ -67,7 +71,8 @@ class NoteController(private val firestore: Firestore) {
         return ResponseEntity.status(HttpStatus.CREATED).body(note)
     }
 
-    fun deleteNote(id: String): ResponseEntity<Map<String, Boolean>> {
+    @DeleteMapping("/{id}")
+    fun deleteNote(@PathVariable id: String): ResponseEntity<Map<String, Boolean>> {
         val userId = SecurityContextHolder.getContext().authentication.principal as String
 
         val doc = firestore.collection(COLLECTION_NAME).document(id).get().get()

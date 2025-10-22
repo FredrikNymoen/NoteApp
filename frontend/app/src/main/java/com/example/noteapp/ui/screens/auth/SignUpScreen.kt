@@ -21,7 +21,8 @@ import androidx.compose.ui.unit.sp
 fun SignUpScreen(
     onSignUpClick: (String, String, String) -> Unit,
     onLoginNavigate: () -> Unit,
-    isLoading: Boolean = false
+    isLoading: Boolean = false,
+    errorMessage: String? = null
 ) {
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
@@ -54,6 +55,24 @@ fun SignUpScreen(
         )
 
         Spacer(modifier = Modifier.height(32.dp))
+
+        // Error message
+        if (errorMessage != null) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp),
+                color = MaterialTheme.colorScheme.errorContainer,
+                shape = MaterialTheme.shapes.small
+            ) {
+                Text(
+                    text = errorMessage,
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                    modifier = Modifier.padding(12.dp),
+                    fontSize = 14.sp
+                )
+            }
+        }
 
         // Name field
         OutlinedTextField(

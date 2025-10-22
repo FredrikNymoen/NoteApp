@@ -23,7 +23,8 @@ import androidx.compose.ui.unit.sp
 fun LoginScreen(
     onLoginClick: (String, String) -> Unit,
     onSignUpNavigate: () -> Unit,
-    isLoading: Boolean = false
+    isLoading: Boolean = false,
+    errorMessage: String? = null
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -53,6 +54,24 @@ fun LoginScreen(
         )
 
         Spacer(modifier = Modifier.height(32.dp))
+
+        // Error message
+        if (errorMessage != null) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp),
+                color = MaterialTheme.colorScheme.errorContainer,
+                shape = MaterialTheme.shapes.small
+            ) {
+                Text(
+                    text = errorMessage,
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                    modifier = Modifier.padding(12.dp),
+                    fontSize = 14.sp
+                )
+            }
+        }
 
         // Email field
         OutlinedTextField(
