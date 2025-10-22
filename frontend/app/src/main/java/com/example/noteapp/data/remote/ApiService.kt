@@ -1,7 +1,9 @@
 package com.example.noteapp.data.remote
 
 import com.example.noteapp.data.model.CreateNoteRequest
+import com.example.noteapp.data.model.CreateUserRequest
 import com.example.noteapp.data.model.Note
+import com.example.noteapp.data.model.User
 import retrofit2.http.*
 
 interface ApiService {
@@ -32,4 +34,10 @@ interface ApiService {
     suspend fun verifyAuth(
         @Header("Authorization") token: String
     ): Map<String, String>
+
+    @POST("api/auth/register")
+    suspend fun registerUser(
+        @Header("Authorization") token: String,
+        @Body request: CreateUserRequest
+    ): User
 }

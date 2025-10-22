@@ -2,11 +2,12 @@ package com.example.noteapp.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.noteapp.data.model.CreateUserRequest
+import com.example.noteapp.data.remote.RetrofitClient
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.auth.userProfileChangeRequest
-import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -24,7 +25,6 @@ data class AuthUiState(
 
 class AuthViewModel : ViewModel() {
     private val auth: FirebaseAuth = Firebase.auth
-    private val firestore = Firebase.firestore
 
     private val _uiState = MutableStateFlow(AuthUiState())
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
@@ -73,19 +73,20 @@ class AuthViewModel : ViewModel() {
                     displayName = name
                 })?.await()
 
-                // Opprett brukerdokument i Firestore
+                // Opprett brukerdokument på backend
                 result.user?.let { user ->
-                    val userDoc = hashMapOf(
-                        "uid" to user.uid,
-                        "name" to name,
-                        "email" to email,
-                        "createdAt" to com.google.firebase.Timestamp.now()
-                    )
                     try {
-                        firestore.collection("users").document(user.uid).set(userDoc).await()
-                    } catch (firestoreError: Exception) {
-                        android.util.Log.e("AuthViewModel", "Feil ved opprettelse av brukerdokument: ${firestoreError.message}", firestoreError)
-                        throw firestoreError
+                        val token = "Bearer ${user.getIdToken(false).await().token}"
+                        val createUserRequest = CreateUserRequest(
+                            uid = user.uid,
+                            name = name,
+                            email = email
+                        )
+                        RetrofitClient.apiService.registerUser(token, createUserRequest)
+                        android.util.Log.d("AuthViewModel", "Bruker registrert på backend")
+                    } catch (apiError: Exception) {
+                        android.util.Log.e("AuthViewModel", "Feil ved registrering på backend: ${apiError.message}", apiError)
+                        throw apiError
                     }
                 }
 
