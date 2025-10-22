@@ -21,10 +21,7 @@ class NoteController(private val firestore: Firestore) {
 
     @GetMapping
     fun getAllNotes(): ResponseEntity<List<NoteWithAuthor>> {
-        val userId = SecurityContextHolder.getContext().authentication.principal as String
-
         val notes = firestore.collection(COLLECTION_NAME)
-            .whereEqualTo("userId", userId)
             .get()
             .get()
             .documents
@@ -38,17 +35,15 @@ class NoteController(private val firestore: Firestore) {
 
     @GetMapping("/{id}")
     fun getNoteById(@PathVariable id: String): ResponseEntity<NoteWithAuthor> {
-        val userId = SecurityContextHolder.getContext().authentication.principal as String
-
         val doc = firestore.collection(COLLECTION_NAME).document(id).get().get()
 
         return if (doc.exists()) {
             val note = doc.toObject(Note::class.java)?.copy(id = doc.id)
-            if (note?.userId == userId) {
-                val noteWithAuthor = note.let { addAuthorName(it) }
+            val noteWithAuthor = note?.let { addAuthorName(it) }
+            if (noteWithAuthor != null) {
                 ResponseEntity.ok(noteWithAuthor)
             } else {
-                ResponseEntity.status(HttpStatus.FORBIDDEN).build()
+                ResponseEntity.notFound().build()
             }
         } else {
             ResponseEntity.notFound().build()
