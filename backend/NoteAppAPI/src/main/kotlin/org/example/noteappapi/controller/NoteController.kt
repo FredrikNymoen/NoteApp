@@ -4,6 +4,8 @@ package org.example.noteappapi.controller
 import com.google.cloud.firestore.Firestore
 import org.example.noteappapi.model.CreateNoteRequest
 import org.example.noteappapi.model.Note
+import org.example.noteappapi.model.NoteWithAuthor
+import org.example.noteappapi.model.User
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.context.SecurityContextHolder
@@ -15,9 +17,10 @@ import java.util.UUID
 class NoteController(private val firestore: Firestore) {
 
     private val COLLECTION_NAME = "notes"
+    private val USERS_COLLECTION = "users"
 
     @GetMapping
-    fun getAllNotes(): ResponseEntity<List<Note>> {
+    fun getAllNotes(): ResponseEntity<List<NoteWithAuthor>> {
         val userId = SecurityContextHolder.getContext().authentication.principal as String
 
         val notes = firestore.collection(COLLECTION_NAME)
@@ -25,15 +28,16 @@ class NoteController(private val firestore: Firestore) {
             .get()
             .get()
             .documents
-            .map { doc ->
-                doc.toObject(Note::class.java).copy(id = doc.id)
+            .mapNotNull { doc ->
+                val note = doc.toObject(Note::class.java)?.copy(id = doc.id)
+                note?.let { addAuthorName(it) }
             }
 
         return ResponseEntity.ok(notes)
     }
 
     @GetMapping("/{id}")
-    fun getNoteById(@PathVariable id: String): ResponseEntity<Note> {
+    fun getNoteById(@PathVariable id: String): ResponseEntity<NoteWithAuthor> {
         val userId = SecurityContextHolder.getContext().authentication.principal as String
 
         val doc = firestore.collection(COLLECTION_NAME).document(id).get().get()
@@ -41,7 +45,8 @@ class NoteController(private val firestore: Firestore) {
         return if (doc.exists()) {
             val note = doc.toObject(Note::class.java)?.copy(id = doc.id)
             if (note?.userId == userId) {
-                ResponseEntity.ok(note)
+                val noteWithAuthor = note.let { addAuthorName(it) }
+                ResponseEntity.ok(noteWithAuthor)
             } else {
                 ResponseEntity.status(HttpStatus.FORBIDDEN).build()
             }
@@ -51,7 +56,7 @@ class NoteController(private val firestore: Firestore) {
     }
 
     @PostMapping
-    fun createNote(@RequestBody request: CreateNoteRequest): ResponseEntity<Note> {
+    fun createNote(@RequestBody request: CreateNoteRequest): ResponseEntity<NoteWithAuthor> {
         val userId = SecurityContextHolder.getContext().authentication.principal as String
 
         if (request.title.isBlank() || request.content.isBlank()) {
@@ -68,7 +73,8 @@ class NoteController(private val firestore: Firestore) {
 
         firestore.collection(COLLECTION_NAME).document(noteId).set(note).get()
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(note)
+        val noteWithAuthor = addAuthorName(note)
+        return ResponseEntity.status(HttpStatus.CREATED).body(noteWithAuthor)
     }
 
     @DeleteMapping("/{id}")
@@ -90,5 +96,32 @@ class NoteController(private val firestore: Firestore) {
             ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(mapOf("success" to false))
         }
+    }
+
+    private fun addAuthorName(note: Note): NoteWithAuthor {
+        val userName = try {
+            val userDoc = firestore.collection(USERS_COLLECTION)
+                .document(note.userId)
+                .get()
+                .get()
+
+            if (userDoc.exists()) {
+                userDoc.getString("name") ?: "Ukjent bruker"
+            } else {
+                "Ukjent bruker"
+            }
+        } catch (e: Exception) {
+            "Ukjent bruker"
+        }
+
+        return NoteWithAuthor(
+            id = note.id,
+            userId = note.userId,
+            title = note.title,
+            content = note.content,
+            userName = userName,
+            createdAt = note.createdAt,
+            updatedAt = note.updatedAt
+        )
     }
 }

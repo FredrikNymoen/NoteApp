@@ -1,8 +1,8 @@
-package com.example.noteapp.data.model
+package org.example.noteappapi.model
 
-import com.google.firebase.Timestamp
+import com.google.cloud.Timestamp
 
-data class Note(
+data class NoteWithAuthor(
     val id: String = "",
     val userId: String = "",
     val title: String = "",
