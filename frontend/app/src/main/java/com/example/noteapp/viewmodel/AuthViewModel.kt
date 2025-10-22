@@ -81,7 +81,12 @@ class AuthViewModel : ViewModel() {
                         "email" to email,
                         "createdAt" to com.google.firebase.Timestamp.now()
                     )
-                    firestore.collection("users").document(user.uid).set(userDoc).await()
+                    try {
+                        firestore.collection("users").document(user.uid).set(userDoc).await()
+                    } catch (firestoreError: Exception) {
+                        android.util.Log.e("AuthViewModel", "Feil ved opprettelse av brukerdokument: ${firestoreError.message}", firestoreError)
+                        throw firestoreError
+                    }
                 }
 
                 _uiState.update {
@@ -93,6 +98,7 @@ class AuthViewModel : ViewModel() {
                 }
                 onSuccess()
             } catch (e: Exception) {
+                android.util.Log.e("AuthViewModel", "Feil ved registrering: ${e.message}", e)
                 _uiState.update {
                     it.copy(
                         errorMessage = "Feil ved registrering: ${e.localizedMessage}",
