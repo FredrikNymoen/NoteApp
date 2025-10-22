@@ -1,24 +1,27 @@
-// NoteViewModel.kt (oppdatert)
 package com.example.noteapp.viewmodel
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.noteapp.data.model.Note
 import com.example.noteapp.data.repository.NoteRepository
-import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
-data class NoteUiState(
-    val notes: List<Note> = emptyList(),
-    val isLoading: Boolean = false,
-    val error: String? = null
-)
 class NoteViewModel(
-    private val repository: NoteRepository
+    private val authViewModel: AuthViewModel
 ) : ViewModel() {
+    private val repository = NoteRepository(authViewModel)
 
-    private val _uiState = MutableStateFlow(NoteUiState())
-    val uiState: StateFlow<NoteUiState> = _uiState
+    var notes by mutableStateOf<List<Note>>(emptyList())
+        private set
+
+    var isLoading by mutableStateOf(false)
+        private set
+
+    var errorMessage by mutableStateOf<String?>(null)
+        private set
 
     init {
         loadNotes()
@@ -26,58 +29,51 @@ class NoteViewModel(
 
     fun loadNotes() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, error = null) }
-
-            repository.getAllNotes().collect { result ->
-                result.fold(
-                    onSuccess = { notes ->
-                        _uiState.update {
-                            it.copy(
-                                notes = notes,
-                                isLoading = false
-                            )
-                        }
-                    },
-                    onFailure = { exception ->
-                        _uiState.update {
-                            it.copy(
-                                isLoading = false,
-                                error = exception.message
-                            )
-                        }
+            isLoading = true
+            errorMessage = null
+            try {
+                repository.getAllNotes().collect { result ->
+                    result.onSuccess { notesList ->
+                        notes = notesList
+                    }.onFailure { exception ->
+                        errorMessage = "Feil ved lasting: ${exception.localizedMessage}"
                     }
-                )
+                }
+            } catch (e: Exception) {
+                errorMessage = "Feil ved lasting: ${e.message}"
+            } finally {
+                isLoading = false
             }
         }
     }
 
-    fun createNote(title: String, content: String) {
+    fun addNote(title: String, content: String) {
         viewModelScope.launch {
-            repository.createNote(title, content).fold(
-                onSuccess = {
-                    loadNotes() // Reload notes after creation
-                },
-                onFailure = { exception ->
-                    _uiState.update {
-                        it.copy(error = exception.message)
-                    }
+            try {
+                val result = repository.createNote(title, content)
+                result.onSuccess {
+                    loadNotes()
+                }.onFailure { exception ->
+                    errorMessage = "Feil ved lagring: ${exception.localizedMessage}"
                 }
-            )
+            } catch (e: Exception) {
+                errorMessage = "Feil ved lagring: ${e.message}"
+            }
         }
     }
 
     fun deleteNote(noteId: String) {
         viewModelScope.launch {
-            repository.deleteNote(noteId).fold(
-                onSuccess = {
-                    loadNotes() // Reload notes after deletion
-                },
-                onFailure = { exception ->
-                    _uiState.update {
-                        it.copy(error = exception.message)
-                    }
+            try {
+                val result = repository.deleteNote(noteId)
+                result.onSuccess {
+                    loadNotes()
+                }.onFailure { exception ->
+                    errorMessage = "Feil ved sletting: ${exception.localizedMessage}"
                 }
-            )
+            } catch (e: Exception) {
+                errorMessage = "Feil ved sletting: ${e.message}"
+            }
         }
     }
 }
