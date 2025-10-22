@@ -58,19 +58,10 @@ class NoteController(private val firestore: Firestore) {
             return ResponseEntity.badRequest().build()
         }
 
-        // Get user's display name from Firestore
-        val userDoc = firestore.collection("users").document(userId).get().get()
-        val userName = if (userDoc.exists()) {
-            userDoc.getString("name") ?: "Unknown"
-        } else {
-            "Unknown"
-        }
-
         val noteId = UUID.randomUUID().toString()
         val note = Note(
             id = noteId,
             userId = userId,
-            userName = userName,
             title = request.title,
             content = request.content
         )
