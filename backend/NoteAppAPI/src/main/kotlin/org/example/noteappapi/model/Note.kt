@@ -5,6 +5,7 @@ import com.google.cloud.Timestamp
 data class Note(
     val id: String = "",
     val userId: String = "",
+    val userName: String = "",
     val title: String = "",
     val content: String = "",
     val createdAt: Timestamp = Timestamp.now(),

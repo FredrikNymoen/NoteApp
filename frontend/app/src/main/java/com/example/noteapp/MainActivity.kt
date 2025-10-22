@@ -46,11 +46,22 @@ fun NoteApp() {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    // Check if user is logged in
-    val startDestination = if (authUiState.isLoggedIn) {
-        Screen.Notes.route
-    } else {
-        Screen.Login.route
+    // Initial start destination
+    val startDestination = Screen.Login.route
+
+    // Navigate when auth state changes
+    LaunchedEffect(authUiState.isLoggedIn) {
+        if (authUiState.isLoggedIn) {
+            // User logged in/signed up - navigate to Notes
+            navController.navigate(Screen.Notes.route) {
+                popUpTo(Screen.Login.route) { inclusive = true }
+            }
+        } else if (currentRoute !in listOf(Screen.Login.route, Screen.SignUp.route)) {
+            // User logged out - navigate back to Login
+            navController.navigate(Screen.Login.route) {
+                popUpTo(0) { inclusive = true }
+            }
+        }
     }
 
     // Screens for bottom navigation (only shown when logged in)
