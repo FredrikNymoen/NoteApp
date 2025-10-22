@@ -37,6 +37,12 @@ fun NoteItem(
                     text = note.content,
                     style = MaterialTheme.typography.bodyMedium
                 )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Av: ${note.userName}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
             IconButton(onClick = onDelete) {
                 Icon(
