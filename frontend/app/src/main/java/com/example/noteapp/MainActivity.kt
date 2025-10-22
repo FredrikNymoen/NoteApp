@@ -1,4 +1,3 @@
-// MainActivity.kt (oppdatert)
 package com.example.noteapp
 
 import android.os.Bundle
@@ -17,12 +16,11 @@ import com.example.noteapp.ui.navigation.Screen
 import com.example.noteapp.viewmodel.AuthViewModel
 import com.example.noteapp.viewmodel.NoteViewModel
 import com.google.firebase.FirebaseApp
-import com.google.firebase.auth.ktx.auth
-import com.google.firebase.ktx.Firebase
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        actionBar?.hide()
 
         // Initialize Firebase
         FirebaseApp.initializeApp(this)
@@ -50,13 +48,13 @@ fun NoteApp() {
     val startDestination = Screen.Login.route
 
     // Navigate when auth state changes
-    LaunchedEffect(authUiState.isLoggedIn) {
-        if (authUiState.isLoggedIn) {
-            // User logged in/signed up - navigate to Notes
+    LaunchedEffect(authUiState.isLoggedIn, authUiState.isLoading) {
+        if (authUiState.isLoggedIn && !authUiState.isLoading) {
+            // User logged in/signed up and loading is done - navigate to Notes
             navController.navigate(Screen.Notes.route) {
                 popUpTo(Screen.Login.route) { inclusive = true }
             }
-        } else if (currentRoute !in listOf(Screen.Login.route, Screen.SignUp.route)) {
+        } else if (!authUiState.isLoggedIn && currentRoute !in listOf(Screen.Login.route, Screen.SignUp.route)) {
             // User logged out - navigate back to Login
             navController.navigate(Screen.Login.route) {
                 popUpTo(0) { inclusive = true }
@@ -81,8 +79,7 @@ fun NoteApp() {
                 TopAppBar(
                     title = {
                         Text(
-                            bottomNavScreens.find { it.route == currentRoute }?.title
-                                ?: "Min Note App"
+                            bottomNavScreens.find { it.route == currentRoute }?.title ?: ""
                         )
                     },
                     colors = TopAppBarDefaults.topAppBarColors(

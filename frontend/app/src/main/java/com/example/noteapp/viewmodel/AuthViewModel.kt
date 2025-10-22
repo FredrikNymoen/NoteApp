@@ -38,7 +38,7 @@ class AuthViewModel : ViewModel() {
         _uiState.update { it.copy(currentUser = user, isLoggedIn = user != null) }
     }
 
-    fun signIn(email: String, password: String, onSuccess: () -> Unit) {
+    fun signIn(email: String, password: String) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             try {
@@ -50,7 +50,6 @@ class AuthViewModel : ViewModel() {
                         isLoading = false
                     )
                 }
-                onSuccess()
             } catch (e: Exception) {
                 _uiState.update {
                     it.copy(
@@ -62,7 +61,7 @@ class AuthViewModel : ViewModel() {
         }
     }
 
-    fun signUp(name: String, email: String, password: String, onSuccess: () -> Unit) {
+    fun signUp(name: String, email: String, password: String) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             try {
@@ -97,7 +96,6 @@ class AuthViewModel : ViewModel() {
                         isLoading = false
                     )
                 }
-                onSuccess()
             } catch (e: Exception) {
                 android.util.Log.e("AuthViewModel", "Feil ved registrering: ${e.message}", e)
                 _uiState.update {
@@ -115,11 +113,9 @@ class AuthViewModel : ViewModel() {
         _uiState.update { it.copy(currentUser = null, isLoggedIn = false) }
     }
 
-    fun getCurrentUserId(): String? = auth.currentUser?.uid
-
     suspend fun getIdToken(): String? {
         return try {
-            auth.currentUser?.getIdToken(false)?.await()?.token
+            auth.currentUser?.getIdToken(true)?.await()?.token
         } catch (e: Exception) {
             null
         }

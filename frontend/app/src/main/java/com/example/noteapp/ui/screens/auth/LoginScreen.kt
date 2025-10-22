@@ -43,6 +43,7 @@ fun LoginScreen(
             fontSize = 32.sp,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.primary
+
         )
 
         Spacer(modifier = Modifier.height(8.dp))

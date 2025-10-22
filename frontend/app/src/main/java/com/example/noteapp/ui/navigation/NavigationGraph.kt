@@ -33,11 +33,7 @@ fun NavigationGraph(
         composable(Screen.Login.route) {
             LoginScreen(
                 onLoginClick = { email, password ->
-                    authViewModel.signIn(email, password) {
-                        navController.navigate(Screen.Notes.route) {
-                            popUpTo(Screen.Login.route) { inclusive = true }
-                        }
-                    }
+                    authViewModel.signIn(email, password)
                 },
                 onSignUpNavigate = {
                     navController.navigate(Screen.SignUp.route)
@@ -57,11 +53,7 @@ fun NavigationGraph(
         composable(Screen.SignUp.route) {
             SignUpScreen(
                 onSignUpClick = { name, email, password ->
-                    authViewModel.signUp(name, email, password) {
-                        navController.navigate(Screen.Notes.route) {
-                            popUpTo(Screen.SignUp.route) { inclusive = true }
-                        }
-                    }
+                    authViewModel.signUp(name, email, password)
                 },
                 onLoginNavigate = {
                     navController.navigateUp()

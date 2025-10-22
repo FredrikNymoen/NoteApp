@@ -23,8 +23,13 @@ class NoteViewModel(
     var errorMessage by mutableStateOf<String?>(null)
         private set
 
-    init {
-        loadNotes()
+    private var notesLoaded = false
+
+    fun ensureNotesLoaded() {
+        if (!notesLoaded) {
+            loadNotes()
+            notesLoaded = true
+        }
     }
 
     fun loadNotes() {
