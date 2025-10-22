@@ -135,47 +135,12 @@ Request Flow:
 
 User enters credentials → Firebase Auth generates token → Backend verifies token → Navigate to Notes screen
 
-#### 2️⃣ Registration Flow
-![SignUp Sequence](images/signup-sequence.png)
-
-User provides name, email, password → Firebase creates account → Backend creates user document → Firestore stores user profile
-
 #### 3️⃣ Fetching Notes
 ![Notes Sequence](images/notes-sequence.png)
 
 User views Notes screen → Frontend requests notes with Bearer token → Backend queries Firestore → Returns user's notes list
 
-### Creating a Note
-```
-📱 Frontend                          🖥️ Backend              📊 Firestore
-   ↓                                    ↓                         ↓
-User clicks "Legg til"
-   ↓
-AddNoteScreen
-   ↓
-NoteViewModel.addNote()
-   ↓
-Repository.createNote()
-   ↓
-ApiService.createNote()
-   │
-   └──→ POST /api/notes
-        + Authorization: Bearer {token}
-        + {title, content}
-                                       ↓
-                                   FirebaseTokenFilter
-                                   (verify token)
-                                       ↓
-                                   NoteController
-                                       ↓
-                                   Save to Firestore
-                                       ↓
-                                   users/{userId}/notes/{id}
-        ←──────────────────────────────↓
-   Returns created note
-        ↓
-   UI updates with new note
-```
+
 
 ## 🚀 Getting Started
 
